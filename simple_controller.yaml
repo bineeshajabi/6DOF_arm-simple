@@ -1,0 +1,32 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 100    #in Hz
+
+    #JointTrajectoryController allows you to send joints on a robot
+    arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+    #Publishes the current state of the robot
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+#Define the parameters of each controller
+arm_controller:
+  ros__parameters:
+    joints: 
+      - link1_to_link2
+      - link2_to_link3
+      - link3_to_link4
+      - link4_to_link5
+      - link5_to_link6
+      - link6_to_link6_flange
+
+    #Command interface (commands to each joint) and state interface (feedback)
+    command_interfaces:
+      - position
+
+    state_interfaces:
+      - position
+      - velocity
+    open_loop_control: true
+    state_publish_rate: 50
