@@ -14,7 +14,10 @@ def generate_launch_description():
     
     pkg_arm ='arm_description'
     urdf_file='arm_model.urdf.xacro'
+
     pkg_description=FindPackageShare(pkg_arm) 
+
+    use_sim_time = LaunchConfiguration('use_sim_time')
 
     # Initialization of directories
     xacro_file_GZ =PathJoinSubstitution([pkg_description,'urdf','robots',urdf_file]) 
@@ -34,8 +37,13 @@ def generate_launch_description():
           default_value = ['-r -v 4 ',world],
           description = 'Defining the world for robot model'
      )
-    
+    declare_use_sim_time_cmd = DeclareLaunchArgument(
+        name='use_sim_time',
+        default_value='false',
+        description='Uses simulated clock when set to true'
+    )
     gz_args = LaunchConfiguration('gz_args')
+
 
      #Gazebo node
     gazebo_launch = IncludeLaunchDescription(
@@ -54,6 +62,7 @@ def generate_launch_description():
 		name='robot_state_publisher_arm',
 		output='screen',
 		parameters=[{
+               'use_sim_time' : use_sim_time,
 			'robot_description':robot_description_content}]
      )
 
@@ -70,6 +79,14 @@ def generate_launch_description():
           executable="spawner",
           arguments=['joint_state_broadcaster']
      )
+    
+    # Bridge
+    bridge = Node(
+        package='ros_gz_bridge',
+        executable='parameter_bridge',
+        arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+        output='screen'
+    )
 
     controller_spawner=Node(
           package="controller_manager",
@@ -96,15 +113,18 @@ def generate_launch_description():
      
     return LaunchDescription([   
           declare_gz_args_cmd,
-          delay_joint_state_broadcaster_after_joint_state_broadcaster_spawner,
-          delay_joint_state_broadcaster_after_robot_controller_spawner,
+          declare_use_sim_time_cmd,
+          bridge,
           gazebo_launch,
           robot_state_publisher,
-          spawn_entity_robot
+          spawn_entity_robot,
+          delay_joint_state_broadcaster_after_joint_state_broadcaster_spawner,
+          delay_joint_state_broadcaster_after_robot_controller_spawner,
+          
     ])
 
 ''' 
-     
+     ERROR BLOCKS -->
      
      #Create the gazebo world
      gazebo_node = ExecuteProcess(
@@ -166,5 +186,4 @@ def generate_launch_description():
         joint_state_broadcaster_spawner,
         controller_spawner
 
-        
-          '''
+'''
