@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, RegisterEventHandler,IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, RegisterEventHandler,IncludeLaunchDescription,TimerAction,ExecuteProcess
 from launch.event_handlers import OnProcessStart,OnProcessExit
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
@@ -74,12 +74,6 @@ def generate_launch_description():
         output='screen'
      )
 
-    joint_state_broadcaster_spawner=Node(
-          package="controller_manager",
-          executable="spawner",
-          arguments=['joint_state_broadcaster']
-     )
-    
     # Bridge
     bridge = Node(
         package='ros_gz_bridge',
@@ -88,6 +82,12 @@ def generate_launch_description():
         output='screen'
     )
 
+    joint_state_broadcaster_spawner=Node(
+          package="controller_manager",
+          executable="spawner",
+          arguments=['joint_state_broadcaster']
+     )
+    
     controller_spawner=Node(
           package="controller_manager",
           executable="spawner",
@@ -110,7 +110,12 @@ def generate_launch_description():
         )
     )
 
-     
+    
+    rqt_reconfigure =  Node(
+        package='rqt_gui',
+        executable='rqt_gui'
+    )
+ 
     return LaunchDescription([   
           declare_gz_args_cmd,
           declare_use_sim_time_cmd,
@@ -120,12 +125,51 @@ def generate_launch_description():
           spawn_entity_robot,
           delay_joint_state_broadcaster_after_joint_state_broadcaster_spawner,
           delay_joint_state_broadcaster_after_robot_controller_spawner,
-          
+          rqt_reconfigure
+                   
     ])
 
 ''' 
      ERROR BLOCKS -->
      
+    # Start arm controller
+    start_arm_controller_cmd = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'arm_controller'],
+        output='screen')
+
+    # Start gripper action controller
+    start_gripper_action_controller_cmd = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'gripper_action_controller'],
+        output='screen')
+
+    # Launch joint state broadcaster
+    start_joint_state_broadcaster_cmd = ExecuteProcess(
+        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active',
+             'joint_state_broadcaster'],
+        output='screen')
+
+    # Add delay to joint state broadcaster (if necessary)
+    delayed_start = TimerAction(
+        period=10.0,
+        actions=[start_joint_state_broadcaster_cmd]
+    )
+
+    # Register event handlers for sequencing
+    # Launch the joint state broadcaster after spawning the robot
+    load_joint_state_broadcaster_cmd = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=start_joint_state_broadcaster_cmd,
+            on_exit=[start_arm_controller_cmd]))
+
+    # Launch the arm controller after launching the joint state broadcaster
+    load_arm_controller_cmd = RegisterEventHandler(
+        event_handler=OnProcessExit(
+            target_action=start_arm_controller_cmd,
+            on_exit=[start_gripper_action_controller_cmd]))
+            
+    
      #Create the gazebo world
      gazebo_node = ExecuteProcess(
           cmd=['gz' , 'sim', '--verbose', world],
