@@ -24,7 +24,7 @@ arm_controller:
 
     #Command interface (commands to each joint) and state interface (feedback)
     command_interfaces: 
-      - velocity
+      - position
 
     state_interfaces:
       - position
