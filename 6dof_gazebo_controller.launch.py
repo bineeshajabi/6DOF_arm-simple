@@ -28,10 +28,13 @@ def generate_launch_description():
      
     robot_controllers=PathJoinSubstitution([FindPackageShare('arm_gazebo'),'config','simple_controller.yaml'])
     
-    #Declaration Gazebo and world
+    #Declaration of Gazebo and world
+
+    #Declare the world file
     world_file_name = 'empty_world.sdf'
     world = os.path.join(get_package_share_directory('arm_gazebo'), 'world', world_file_name)
-     
+    
+    #Declare Gazebo launch arguments
     declare_gz_args_cmd = DeclareLaunchArgument(
           name = 'gz_args',
           default_value = ['-r -v 4 ',world],
@@ -42,10 +45,11 @@ def generate_launch_description():
         default_value='false',
         description='Uses simulated clock when set to true'
     )
+    #Launch configuration variables
     gz_args = LaunchConfiguration('gz_args')
 
 
-     #Gazebo node
+     #Combined all together creating the gazebo node
     gazebo_launch = IncludeLaunchDescription(
           PythonLaunchDescriptionSource(
                [PathJoinSubstitution([FindPackageShare('ros_gz_sim'),
@@ -54,6 +58,7 @@ def generate_launch_description():
                ]),
                 launch_arguments={'gz_args': gz_args}.items()
           )
+
 
      # Robot State Publisher to generate the /robot state topic with URDF data
     robot_state_publisher=Node(
